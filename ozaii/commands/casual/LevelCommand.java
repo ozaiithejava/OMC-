@@ -6,9 +6,11 @@ import org.bukkit.entity.Player;
 import ozaii.apis.base.FactoryApi;
 
 public class LevelCommand extends VanillaCommand {
-    static FactoryApi api = new FactoryApi(); // api sınıfı üzerinden level bilgisi alınacak
+    // Api class instance to retrieve level information
+    static FactoryApi api = new FactoryApi();
 
     public LevelCommand() {
+        // Define the command name, description, and usage message
         super("level");
         this.description = "See your or another player's current level";
         this.usageMessage = "/level [player-name]";
@@ -16,28 +18,34 @@ public class LevelCommand extends VanillaCommand {
 
     @Override
     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
-        // Komutu sadece oyuncular kullanabilmeli
+        // The command should only be used by players
         if (sender instanceof Player) {
             Player player = (Player) sender;
             String playerName;
 
-            // Eğer komutla oyuncu adı verilmişse, o oyuncunun level'ı gösterilsin
+            // If a player name is provided as an argument, show their level
             if (args.length > 0) {
                 playerName = args[0];
             } else {
-                // Eğer oyuncu adı verilmemişse, komutu yazan oyuncunun kendi level'ı gösterilsin
+                // If no player name is provided, show the level of the player executing the command
                 playerName = player.getName();
             }
 
-            // Oyuncunun level bilgisini almak
+            // Retrieve the level of the specified player asynchronously
             int level = (int) api.getLevelManager().getLevelAsync(playerName).join();
 
-            // Oyuncuya level bilgisini gösteriyoruz
-            player.sendMessage(playerName + "'s current level: " + level);
+            // Format and display the table-like message with colors
+            String message = "§6----------------------------\n" +  // Yellow border
+                    "§ePlayer: §a" + playerName + "\n" +  // Green for player name
+                    "§eLevel: §b" + level + "\n" +  // Blue for level
+                    "§6----------------------------";  // Yellow border
+
+            // Display the message to the player
+            player.sendMessage(message);
 
         } else {
-            // Eğer komut bir oyuncu tarafından kullanılmıyorsa, mesaj göster
-            sender.sendMessage("This command can only be used by players.");
+            // If the command is used by something other than a player, show an error message
+            sender.sendMessage("§cThis command can only be used by players.");  // Red error message
         }
 
         return true;

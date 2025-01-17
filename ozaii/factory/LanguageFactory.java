@@ -100,24 +100,24 @@ public class LanguageFactory {
         });
     }
 
-    public static void main(String[] args) {
-        // Örnek kullanım
-        LanguageFactory languageFactory = new LanguageFactory("language.yml");
-
-        // Fetching messages asynchronously
-        languageFactory.getMessageAsync("welcome").thenAccept(message -> {
-            System.out.println(message);
-        });
-
-        languageFactory.getMessageAsync("goodbye").thenAccept(message -> {
-            System.out.println(message);
-        });
-
-        // Adding or updating a message asynchronously
-        languageFactory.addOrUpdateMessageAsync("new_message", "This is a new message.").thenRun(() -> {
-            languageFactory.getMessageAsync("new_message").thenAccept(message -> {
-                System.out.println(message);
-            });
-        });
-    }
+//    public static void main(String[] args) {
+//        // Örnek kullanım
+//        LanguageFactory languageFactory = new LanguageFactory("language.yml");
+//
+//        // Fetching messages asynchronously
+//        languageFactory.getMessageAsync("welcome").thenAccept(message -> {
+//            System.out.println(message);
+//        });
+//
+//        languageFactory.getMessageAsync("goodbye").thenAccept(message -> {
+//            System.out.println(message);
+//        });
+//
+//        // Adding or updating a message asynchronously
+//        languageFactory.addOrUpdateMessageAsync("new_message", "This is a new message.").thenRun(() -> {
+//            languageFactory.getMessageAsync("new_message").thenAccept(message -> {
+//                System.out.println(message);
+//            });
+//        });
+//    }
 }

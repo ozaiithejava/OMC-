@@ -66,7 +66,7 @@ public class CoinApi {
      * @param amount The amount to transfer.
      */
     public void transferCoins(String sender, String taker, double amount) {
-        coinManager.transferAccount(sender, taker, amount)
+        coinManager.transfer(sender, taker, amount)
                 .thenRun(() -> logger.info("Transferred " + amount + " coins from " + sender + " to " + taker))
                 .exceptionally(ex -> {
                     logger.severe("Failed to transfer coins from " + sender + " to " + taker + ": " + ex.getMessage());

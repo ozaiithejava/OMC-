@@ -9,158 +9,102 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ProfileManager {
-    FactoryApi api = new FactoryApi();
-    private DatabaseFactory databaseFactory;
+
+    private final FactoryApi api;
+    private final DatabaseFactory databaseFactory;
     private static final Logger logger = Logger.getLogger(ProfileManager.class.getName());
-    private String tableName; // Variable to store the table name
+    private final String tableName;
 
-    public ProfileManager(String settingsFilePath) {
-        // DatabaseFactory sınıfını başlat
-        databaseFactory = new DatabaseFactory(settingsFilePath);
-
-        // Retrieve table name dynamically from settings
-        this.tableName = api.getSettingsFactory().get("playerProfileTable");  // Assuming settingsFactory.get() exists
-
-        // Profile tablosunun olup olmadığını kontrol et, yoksa oluştur
+    public ProfileManager( String settingsFilePath) {
+        this.api = new FactoryApi();
+        this.databaseFactory = api.getDatabaseFactory();
+        this.tableName = api.getSettingsFactory().get("playerProfileTable");
         checkAndCreateTable();
     }
 
-    // Profile tablosunun var olup olmadığını kontrol et, yoksa oluştur
+    // Check and create the table asynchronously
     private void checkAndCreateTable() {
         String createTableQuery = "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                 "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "name VARCHAR(255) NOT NULL UNIQUE, " +
                 "account_creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                "last_login_date TIMESTAMP NULL, " +  // NULL değerini kabul etsin
+                "last_login_date TIMESTAMP NULL, " +
                 "last_login_ip VARCHAR(45)" +
                 ")";
 
-        // Asynchronous table creation
-        CompletableFuture.runAsync(() -> {
-            try (Connection connection = databaseFactory.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(createTableQuery)) {
-                stmt.executeUpdate();
-                logger.info(tableName + " tablosu kontrol edildi ve oluşturuldu (varsa).");
-            } catch (SQLException e) {
-                logger.log(Level.SEVERE, tableName + " tablosu oluşturulurken hata oluştu: ", e);
-            }
-        });
+        CompletableFuture.runAsync(() ->
+                executeUpdate(createTableQuery, stmt -> {}, "Table checked and created.")
+        );
     }
 
-    // Profilin var olup olmadığını kontrol et (asynchronously)
+    // Check if the profile exists asynchronously
     private CompletableFuture<Boolean> profileExistsAsync(String name) {
-        return CompletableFuture.supplyAsync(() -> {
-            String query = "SELECT 1 FROM " + tableName + " WHERE name = ?";
-
-            try (Connection connection = databaseFactory.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setString(1, name);
-                ResultSet rs = stmt.executeQuery();
-                return rs.next();
-            } catch (SQLException e) {
-                logger.log(Level.SEVERE, "Profil kontrolü sırasında hata oluştu: ", e);
-            }
-            return false;
-        });
+        String query = "SELECT 1 FROM " + tableName + " WHERE name = ?";
+        return CompletableFuture.supplyAsync(() -> executeQuery(query, stmt -> stmt.setString(1, name), ResultSet::next));
     }
 
-    // Profil oluşturulmadan önce var olup olmadığını kontrol et
+    // Create a profile if it does not exist asynchronously
     public CompletableFuture<Void> createProfileIfNotExists(String name) {
         return profileExistsAsync(name).thenCompose(exists -> {
             if (exists) {
-                logger.log(Level.WARNING, "Profil zaten mevcut: " + name);
+                logger.log(Level.INFO, "Profile already exists: " + name);
                 return CompletableFuture.completedFuture(null);
             }
-            return createProfileAsync(name); // Profil yoksa oluştur
+            return createProfileAsync(name);
         });
     }
 
-    // Oyuncu profilini oluştur (asynchronously)
+    // Create a new profile asynchronously
     public CompletableFuture<Void> createProfileAsync(String name) {
-        return CompletableFuture.runAsync(() -> {
-            // Profilin var olup olmadığını kontrol et
-            profileExistsAsync(name).thenAccept(exists -> {
-                if (exists) {
-                    // Profil zaten varsa, hata yerine bilgi mesajı yazdır
-                    logger.log(Level.INFO, "Profil zaten mevcut: " + name);
-                    return;  // Profil zaten var, işlem yapılmaz
-                }
-
-                String query = "INSERT INTO " + tableName + " (name) VALUES (?)";
-
-                try (Connection connection = databaseFactory.getConnection();
-                     PreparedStatement stmt = connection.prepareStatement(query)) {
-                    stmt.setString(1, name);
-                    stmt.executeUpdate();
-                    logger.info("Profil oluşturuldu: " + name);
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Profil oluşturulurken hata oluştu: ", e);
-                }
-            });
-        });
+        String query = "INSERT INTO " + tableName + " (name) VALUES (?)";
+        return CompletableFuture.runAsync(() -> executeUpdate(query, stmt -> stmt.setString(1, name), "Profile created: " + name));
     }
 
-
-    // Oyuncunun profilini güncelle (asynchronously)
+    // Update profile with last login date and IP asynchronously
     public CompletableFuture<Void> updateProfileAsync(String name, String ipAddress) {
-        return CompletableFuture.runAsync(() -> {
-            profileExistsAsync(name).thenAccept(exists -> {
-                if (!exists) {
-                    logger.log(Level.WARNING, "Profil bulunamadı: " + name);
-                    return;
-                }
+        return profileExistsAsync(name).thenCompose(exists -> {
+            if (!exists) {
+                logger.log(Level.WARNING, "Profile not found: " + name);
+                return CompletableFuture.completedFuture(null);
+            }
 
-                String query = "UPDATE " + tableName + " SET last_login_date = CURRENT_TIMESTAMP, last_login_ip = ? WHERE name = ?";
-                try (Connection connection = databaseFactory.getConnection();
-                     PreparedStatement stmt = connection.prepareStatement(query)) {
-                    stmt.setString(1, ipAddress);  // IP adresini güncelliyoruz
-                    stmt.setString(2, name);       // Profilin ismini belirtiyoruz
-                    stmt.executeUpdate();
-                    logger.info("Profil güncellendi: " + name);
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Profil güncellenirken hata oluştu: ", e);
-                }
-            });
+            String query = "UPDATE " + tableName + " SET last_login_date = CURRENT_TIMESTAMP, last_login_ip = ? WHERE name = ?";
+            return CompletableFuture.runAsync(() -> executeUpdate(query, stmt -> {
+                stmt.setString(1, ipAddress);
+                stmt.setString(2, name);
+            }, "Profile updated: " + name));
         });
     }
 
-    // Profil detaylarını al (asynchronously)
+    // Get profile details asynchronously
     public CompletableFuture<Profile> getProfileAsync(String name) {
         return profileExistsAsync(name).thenCompose(exists -> {
             if (!exists) {
-                logger.log(Level.WARNING, "Profil bulunamadı: " + name);
+                logger.log(Level.WARNING, "Profile not found: " + name);
                 return CompletableFuture.completedFuture(null);
             }
 
-            return CompletableFuture.supplyAsync(() -> {
-                String query = "SELECT * FROM " + tableName + " WHERE name = ?";
-
-                try (Connection connection = databaseFactory.getConnection();
-                     PreparedStatement stmt = connection.prepareStatement(query)) {
-                    stmt.setString(1, name);
-                    ResultSet rs = stmt.executeQuery();
-                    if (rs.next()) {
-                        return new Profile(
-                                rs.getString("name"),
-                                rs.getTimestamp("account_creation_date"),
-                                rs.getTimestamp("last_login_date"),
-                                rs.getString("last_login_ip")
-                        );
-                    }
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Profil bilgileri sorgulanırken hata oluştu: ", e);
+            String query = "SELECT * FROM " + tableName + " WHERE name = ?";
+            return CompletableFuture.supplyAsync(() -> executeQuery(query, stmt -> stmt.setString(1, name), rs -> {
+                if (rs.next()) {
+                    return new Profile(
+                            rs.getString("name"),
+                            rs.getTimestamp("account_creation_date"),
+                            rs.getTimestamp("last_login_date"),
+                            rs.getString("last_login_ip")
+                    );
                 }
                 return null;
-            });
+            }));
         });
     }
 
-    // Profil sınıfı (Profil bilgileri)
+    // Profile class to hold player profile details
     public static class Profile {
-        private String name;
-        private Timestamp accountCreationDate;
-        private Timestamp lastLoginDate;
-        private String lastLoginIp;
+        private final String name;
+        private final Timestamp accountCreationDate;
+        private final Timestamp lastLoginDate;
+        private final String lastLoginIp;
 
         public Profile(String name, Timestamp accountCreationDate, Timestamp lastLoginDate, String lastLoginIp) {
             this.name = name;
@@ -189,10 +133,51 @@ public class ProfileManager {
         public String toString() {
             return "Profile{" +
                     "name='" + name + '\'' +
-                    ", accountCreationDate=" + (accountCreationDate != null ? accountCreationDate.toString() : "null") +
-                    ", lastLoginDate=" + (lastLoginDate != null ? lastLoginDate.toString() : "null") +
+                    ", accountCreationDate=" + accountCreationDate +
+                    ", lastLoginDate=" + lastLoginDate +
                     ", lastLoginIp='" + lastLoginIp + '\'' +
                     '}';
         }
+    }
+
+    // Helper method to execute updates
+    private void executeUpdate(String query, ThrowingConsumer<PreparedStatement> parameterSetter, String successMessage) {
+        try (Connection connection = databaseFactory.getConnectionAsync().join();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            parameterSetter.accept(stmt);
+            stmt.executeUpdate();
+            logger.info(successMessage);
+
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "SQL error: ", e);
+        }
+    }
+
+    // Helper method to execute queries
+    private <T> T executeQuery(String query, ThrowingConsumer<PreparedStatement> parameterSetter, ThrowingFunction<ResultSet, T> resultHandler) {
+        try (Connection connection = databaseFactory.getConnectionAsync().join();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+
+            parameterSetter.accept(stmt);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return resultHandler.apply(rs);
+            }
+
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "SQL error: ", e);
+        }
+        return null;
+    }
+
+    // Functional interfaces for lambdas
+    @FunctionalInterface
+    private interface ThrowingConsumer<T> {
+        void accept(T t) throws SQLException;
+    }
+
+    @FunctionalInterface
+    private interface ThrowingFunction<T, R> {
+        R apply(T t) throws SQLException;
     }
 }

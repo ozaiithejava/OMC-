@@ -130,6 +130,16 @@ public class SettingsFactory {
             settingsData.addProperty("servercolor", "&a");  // Sunucu adı için renk (örneğin, yeşil)
             settingsData.addProperty("servername", "your_server_name");  // Sunucu adı için renk (örneğin, yeşil)
 
+            settingsData.addProperty("DISCORD.TOKEN", "your_discord_token");  // Sunucu adı için renk (örneğin, yeşil)
+            settingsData.addProperty("DISCORD.PREFIX", "your_discord_prefix");  // Sunucu adı için renk (örneğin, yeşil)
+            settingsData.addProperty("db.discordPairTable", "ozaii_discord_table");  // Sunucu adı için renk (örneğin, yeşil)
+            settingsData.addProperty("DISCORD.CODE.LEN", "8");  // Sunucu adı için renk (örneğin, yeşil)
+            settingsData.addProperty("DISCORD.CODE.TIME", "5");  // Sunucu adı için renk (örneğin, yeşil)
+
+            settingsData.addProperty("tree_h_min", "8");  // Sunucu adı için renk (örneğin, yeşil)
+            settingsData.addProperty("tree_h_max", "16");  // Sunucu adı için renk (örneğin, yeşil)
+
+
             // Ayarları dosyaya kaydet
             saveSettings();
         } catch (IOException e) {

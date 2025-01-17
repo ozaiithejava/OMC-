@@ -76,11 +76,18 @@ public class CoinYollaCommand extends VanillaCommand {
             // Coin gönderme işlemi
             api.getCoinManager().deposit(targetPlayerName, amount);
 
-            // Hedef oyuncuya bilgilendirme mesajı
-            targetPlayer.sendMessage(ChatColor.GREEN + sender.getName() + " sana " + amount + " coin gönderdi!");
+            // Format and display the table-like message with colors
+            String senderMessage = "§6----------------------------\n" +  // Yellow border
+                    "§eAdmin: §a" + sender.getName() + "\n" +  // Green for admin name
+                    "§eTarget: §a" + targetPlayerName + "\n" +  // Green for target player name
+                    "§eCoins Sent: §b" + amount + "\n" +  // Blue for coin amount
+                    "§6----------------------------";  // Yellow border
 
-            // Admin'e bilgilendirme mesajı
-            sender.sendMessage(ChatColor.GREEN + "Başarıyla " + targetPlayerName + " oyuncusuna " + amount + " coin gönderdiniz.");
+            // Send the formatted message to the admin
+            sender.sendMessage(senderMessage);
+
+            // Display the message to the target player
+            targetPlayer.sendMessage(ChatColor.GREEN + sender.getName() + " sana " + amount + " coin gönderdi!");
         }
 
         return true;
