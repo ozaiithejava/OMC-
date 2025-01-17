@@ -1,3 +1,5 @@
+
+
 # OMC (Optimized Minecraft)  
 
 OMC is an **asynchronous fork of Paper Spigot**, developed by **ozaii**, designed to provide maximum performance and stability for Minecraft servers running version **1.8.8**.  
@@ -55,6 +57,28 @@ OMC includes a **FactoryApi** class that provides centralized access to various 
   - **SettingsFactory:** Centralized configuration management.  
   - **FactoryAPI** and **ManagersAPI** for custom integrations.  
 
+## 💡 Example Usages  
+
+### Access Server Information  
+```java
+import ozaii.apis.base.FactoryApi;
+
+public class ServerInfoExample {
+    public static void main(String[] args) {
+        String serverName = FactoryApi.getServerName();
+        String serverVersion = FactoryApi.getServerVersion();
+        String owner = FactoryApi.getOwner();
+        String ownerDiscord = FactoryApi.getOwnerDiscord();
+
+        System.out.println("Server Name: " + serverName);
+        System.out.println("Server Version: " + serverVersion);
+        System.out.println("Owner: " + owner);
+        System.out.println("Owner Discord: " + ownerDiscord);
+    }
+}
+```
+
+
 ## 👥 Support and Contact  
 - **Developer:** [ozaii](https://github.com/ozaiithejava)  
 - **Discord:** ozaii1337  
@@ -65,4 +89,5 @@ We welcome community feedback! Feel free to report issues or suggest improvement
 OMC is an open-source project released under the [MIT License](https://opensource.org/licenses/MIT).  
 
 ## 🌟 Contribute  
-Contributions are always welcome! Fork the repository, create a feature branch, and open a pull request to submit your changes.
+Contributions are always welcome! Fork the repository, create a feature branch, and open a pull request to submit your changes.  
+
